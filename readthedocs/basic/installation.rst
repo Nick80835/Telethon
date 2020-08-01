@@ -49,7 +49,7 @@ The version number of the library should show in the output.
 Optional Dependencies
 =====================
 
-If cryptg_ is installed, **the library will work a lot faster**, since
+If tgcrypto_ is installed, **the library will work a lot faster**, since
 encryption and decryption will be made in C instead of Python. If your
 code deals with a lot of updates or you are downloading/uploading a lot
 of files, you will notice a considerable speed-up (from a hundred kilobytes
@@ -81,11 +81,11 @@ manually.
         apt update
         apt install clang lib{jpeg-turbo,webp}-dev python{,-dev} zlib-dev
         pip install -U --user setuptools
-        pip install -U --user telethon cryptg pillow
+        pip install -U --user telethon tgcrypto pillow
 
     Thanks to `@bb010g`_ for writing down this nice list.
 
-.. _cryptg: https://github.com/cher-nov/cryptg
+.. _tgcrypto: https://github.com/pyrogram/tgcrypto
 .. _pyaes: https://github.com/ricmoo/pyaes
 .. _pillow: https://python-pillow.org
 .. _aiohttp: https://docs.aiohttp.org

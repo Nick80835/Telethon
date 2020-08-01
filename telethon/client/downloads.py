@@ -281,7 +281,7 @@ class DownloadMethods:
         Downloads the given media from a message object.
 
         Note that if the download is too slow, you should consider installing
-        ``cryptg`` (through ``pip install cryptg``) so that decrypting the
+        ``tgcrypto`` (through ``pip install tgcrypto``) so that decrypting the
         received data is done in C instead of Python (much faster).
 
         See also `Message.download_media() <telethon.tl.custom.message.Message.download_media>`.

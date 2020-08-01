@@ -1,4 +1,4 @@
-cryptg
+tgcrypto
 pysocks
 hachoir
 pillow
