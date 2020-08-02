@@ -2,3 +2,4 @@ tgcrypto
 pysocks
 hachoir
 pillow
+uvloop
