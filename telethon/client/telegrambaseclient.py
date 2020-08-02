@@ -17,6 +17,13 @@ from ..statecache import StateCache
 from ..tl import functions, types
 from ..tl.alltlobjects import LAYER
 
+try:
+    import uvloop
+    logging.info("uvloop installed, setting event loop policy")
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
+
 DEFAULT_DC_ID = 2
 DEFAULT_IPV4_IP = '149.154.167.51'
 DEFAULT_IPV6_IP = '2001:67c:4e8:f002::a'
