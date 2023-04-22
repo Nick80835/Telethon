@@ -88,7 +88,7 @@ def _resize_photo_if_needed(
             result.paste(image, mask=image.split()[alpha_index])
 
         buffer = io.BytesIO()
-        result.save(buffer, 'JPEG', progressive=True, **kwargs)
+        result.save(buffer, 'JPEG', progressive=True, quality=87, **kwargs)
         buffer.seek(0)
         buffer.name = 'a.jpg'
         return buffer
