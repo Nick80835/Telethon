@@ -1,10 +1,14 @@
 import abc
 import asyncio
+import typing
 import warnings
 
 from .. import utils
 from ..tl import TLObject, types
 from ..tl.custom.chatgetter import ChatGetter
+
+if typing.TYPE_CHECKING:
+    from ..client.telegramclient import TelegramClient
 
 
 async def _into_id_set(client, chats):
@@ -159,10 +163,11 @@ class EventCommon(ChatGetter, abc.ABC):
             self._chat = self._input_chat = None
 
     @property
-    def client(self):
+    def client(self) -> 'TelegramClient':
         """
         The `telethon.TelegramClient` that created this event.
         """
+        assert self._client
         return self._client
 
     def __str__(self):
