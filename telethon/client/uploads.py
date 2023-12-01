@@ -74,10 +74,9 @@ def _resize_photo_if_needed(
 
         image.thumbnail((width, height), PIL.Image.LANCZOS)
 
-        alpha_index = image.mode.find('A')
-        if alpha_index == -1:
-            # If the image mode doesn't have alpha
-            # channel then don't bother masking it away.
+        if image.mode == 'RGB':
+            # If the image is already RGB, don't convert it
+            # certain modes such as 'P' have no alpha index but can't be saved as JPEG directly
             result = image
         else:
             # We could save the resized image with the original format, but
@@ -85,7 +84,11 @@ def _resize_photo_if_needed(
             # We need to mask away the alpha channel ([3]), since otherwise
             # IOError is raised when trying to save alpha channels in JPEG.
             result = PIL.Image.new('RGB', image.size, background)
-            result.paste(image, mask=image.split()[alpha_index])
+
+            if 'A' in image.mode:
+                result.paste(image, mask=image.split()[image.mode.find('A')])
+            else:
+                result.paste(image)
 
         buffer = io.BytesIO()
         result.save(buffer, 'JPEG', progressive=True, quality=87, **kwargs)
