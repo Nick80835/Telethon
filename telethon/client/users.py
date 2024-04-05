@@ -26,18 +26,18 @@ def _fmt_flood(delay, request, *, early=False, td=datetime.timedelta):
 
 
 class UserMethods:
-    async def __call__(self: 'TelegramClient', request, ordered=False, flood_sleep_threshold=None):
-        return await self._call(self._sender, request, ordered=ordered)
+    async def __call__(self: 'TelegramClient', request, ordered=False, flood_sleep_threshold=None, business_connection_id=None):
+        return await self._call(self._sender, request, ordered=ordered, business_connection_id=business_connection_id)
 
-    async def _call(self: 'TelegramClient', sender, request, ordered=False, flood_sleep_threshold=None):
+    async def _call(self: 'TelegramClient', sender, request, ordered=False, flood_sleep_threshold=None, business_connection_id=None):
         if self._loop is not None and self._loop != helpers.get_running_loop():
             raise RuntimeError('The asyncio event loop must not change after connection (see the FAQ for details)')
         # if the loop is None it will fail with a connection error later on
 
         if flood_sleep_threshold is None:
             flood_sleep_threshold = self.flood_sleep_threshold
-        requests = (request if utils.is_list_like(request) else (request,))
-        for r in requests:
+        requests = list(request) if utils.is_list_like(request) else [request]
+        for i, r in enumerate(requests):
             if not isinstance(r, TLRequest):
                 raise _NOT_A_REQUEST()
             await r.resolve(self, utils)
@@ -56,82 +56,86 @@ class UserMethods:
                     raise errors.FloodWaitError(request=r, capture=diff)
 
             if self._no_updates:
-                r = functions.InvokeWithoutUpdatesRequest(r)
+                requests[i] = functions.InvokeWithoutUpdatesRequest(r)
+
+            if business_connection_id is not None:
+                requests[i] = functions.InvokeWithBusinessConnectionRequest(business_connection_id, r)
 
         request_index = 0
         last_error = None
         self._last_request = time.time()
 
-        for attempt in retry_range(self._request_retries):
-            try:
-                future = sender.send(request, ordered=ordered)
-                if isinstance(future, list):
-                    results = []
-                    exceptions = []
-                    for f in future:
-                        try:
-                            result = await f
-                        except RPCError as e:
-                            exceptions.append(e)
-                            results.append(None)
-                            continue
-                        self.session.process_entities(result)
-                        exceptions.append(None)
-                        results.append(result)
-                        request_index += 1
-                    if any(x is not None for x in exceptions):
-                        raise MultiError(exceptions, results, requests)
+        for request in requests:
+            for attempt in retry_range(self._request_retries):
+                try:
+                    future = sender.send(request, ordered=ordered)
+                    if isinstance(future, list):
+                        results = []
+                        exceptions = []
+                        for f in future:
+                            try:
+                                result = await f
+                            except RPCError as e:
+                                exceptions.append(e)
+                                results.append(None)
+                                continue
+                            self.session.process_entities(result)
+                            exceptions.append(None)
+                            results.append(result)
+                            request_index += 1
+                        if any(x is not None for x in exceptions):
+                            raise MultiError(exceptions, results, requests)
+                        else:
+                            return results
                     else:
-                        return results
-                else:
-                    result = await future
-                    self.session.process_entities(result)
-                    return result
-            except (errors.ServerError, errors.RpcCallFailError,
-                    errors.RpcMcgetFailError, errors.InterdcCallErrorError,
-                    errors.TimedOutError,
-                    errors.InterdcCallRichErrorError) as e:
-                last_error = e
-                self._log[__name__].warning(
-                    'Telegram is having internal issues %s: %s',
-                    e.__class__.__name__, e)
+                        result = await future
+                        self.session.process_entities(result)
+                        return result
+                except (errors.ServerError, errors.RpcCallFailError,
+                        errors.RpcMcgetFailError, errors.InterdcCallErrorError,
+                        errors.TimedOutError,
+                        errors.InterdcCallRichErrorError) as e:
+                    last_error = e
+                    self._log[__name__].warning(
+                        'Telegram is having internal issues %s: %s',
+                        e.__class__.__name__, e)
 
-                await asyncio.sleep(2)
-            except (errors.FloodWaitError, errors.SlowModeWaitError, errors.FloodTestPhoneWaitError) as e:
-                last_error = e
-                if utils.is_list_like(request):
-                    request = request[request_index]
+                    await asyncio.sleep(2)
+                except (errors.FloodWaitError, errors.SlowModeWaitError, errors.FloodTestPhoneWaitError) as e:
+                    last_error = e
+                    if utils.is_list_like(request):
+                        request = request[request_index]
 
-                # SLOW_MODE_WAIT is chat-specific, not request-specific
-                if not isinstance(e, errors.SlowModeWaitError):
-                    self._flood_waited_requests\
-                        [request.CONSTRUCTOR_ID] = time.time() + e.seconds
+                    # SLOW_MODE_WAIT is chat-specific, not request-specific
+                    if not isinstance(e, errors.SlowModeWaitError):
+                        self._flood_waited_requests\
+                            [request.CONSTRUCTOR_ID] = time.time() + e.seconds
 
-                # In test servers, FLOOD_WAIT_0 has been observed, and sleeping for
-                # such a short amount will cause retries very fast leading to issues.
-                if e.seconds == 0:
-                    e.seconds = 1
+                    # In test servers, FLOOD_WAIT_0 has been observed, and sleeping for
+                    # such a short amount will cause retries very fast leading to issues.
+                    if e.seconds == 0:
+                        e.seconds = 1
 
-                if e.seconds <= self.flood_sleep_threshold:
-                    self._log[__name__].info(*_fmt_flood(e.seconds, request))
-                    await asyncio.sleep(e.seconds)
-                else:
-                    raise
-            except (errors.PhoneMigrateError, errors.NetworkMigrateError,
-                    errors.UserMigrateError) as e:
-                last_error = e
-                self._log[__name__].info('Phone migrated to %d', e.new_dc)
-                should_raise = isinstance(e, (
-                    errors.PhoneMigrateError, errors.NetworkMigrateError
-                ))
-                if should_raise and await self.is_user_authorized():
-                    raise
-                await self._switch_dc(e.new_dc)
+                    if e.seconds <= self.flood_sleep_threshold:
+                        self._log[__name__].info(*_fmt_flood(e.seconds, request))
+                        await asyncio.sleep(e.seconds)
+                    else:
+                        raise
+                except (errors.PhoneMigrateError, errors.NetworkMigrateError,
+                        errors.UserMigrateError) as e:
+                    last_error = e
+                    self._log[__name__].info('Phone migrated to %d', e.new_dc)
+                    should_raise = isinstance(e, (
+                        errors.PhoneMigrateError, errors.NetworkMigrateError
+                    ))
+                    if should_raise and await self.is_user_authorized():
+                        raise
+                    await self._switch_dc(e.new_dc)
 
-        if self._raise_last_call_error and last_error is not None:
-            raise last_error
-        raise ValueError('Request was unsuccessful {} time(s)'
-                         .format(attempt))
+            if self._raise_last_call_error and last_error is not None:
+                raise last_error
+            raise ValueError('Request was unsuccessful {} time(s)'
+                            .format(attempt))
 
     # region Public methods
 

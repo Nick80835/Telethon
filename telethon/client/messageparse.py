@@ -190,6 +190,11 @@ class MessageParseMethods:
                     m._finish_init(self, entities, input_chat)
                     return m
 
+            elif isinstance(update, (
+                    types.UpdateBotNewBusinessMessage, types.UpdateBotEditBusinessMessage)):
+                update.message._finish_init(self, entities, input_chat)
+                return update.message
+
         if request is None:
             return id_to_message
 

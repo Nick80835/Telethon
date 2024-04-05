@@ -8,6 +8,7 @@ _NESTS_QUERY = (
     functions.InvokeWithoutUpdatesRequest,
     functions.InvokeWithMessagesRangeRequest,
     functions.InvokeWithTakeoutRequest,
+    functions.InvokeWithBusinessConnectionRequest,
 )
 
 class RPCError(Exception):

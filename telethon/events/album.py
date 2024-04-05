@@ -103,7 +103,7 @@ class Album(EventBuilder):
         others = [update]
 
         if isinstance(update,
-                      (types.UpdateNewMessage, types.UpdateNewChannelMessage)):
+                      (types.UpdateNewMessage, types.UpdateNewChannelMessage, types.UpdateBotNewBusinessMessage)):
             if not isinstance(update.message, types.Message):
                 return  # We don't care about MessageService's here
 
@@ -132,7 +132,7 @@ class Album(EventBuilder):
             # Figure out which updates share the same group and use those
             return cls.Event([
                 u.message for u in others
-                if (isinstance(u, (types.UpdateNewMessage, types.UpdateNewChannelMessage))
+                if (isinstance(u, (types.UpdateNewMessage, types.UpdateNewChannelMessage, types.UpdateBotNewBusinessMessage))
                     and isinstance(u.message, types.Message)
                     and u.message.grouped_id == group)
             ])
