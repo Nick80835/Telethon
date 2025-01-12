@@ -424,7 +424,7 @@ def get_input_media(
         media, *,
         is_photo=False, attributes=None, force_document=False,
         voice_note=False, video_note=False, supports_streaming=False,
-        ttl=None
+        ttl=None, spoiler=None
 ):
     """
     Similar to :meth:`get_input_peer`, but for media.
@@ -447,30 +447,38 @@ def get_input_media(
         return types.InputMediaPhoto(
             id=get_input_photo(media.photo),
             spoiler=media.spoiler,
-            ttl_seconds=ttl or media.ttl_seconds
+            ttl_seconds=ttl or media.ttl_seconds,
+            spoiler=spoiler if spoiler is not None else media.spoiler
         )
 
     if isinstance(media, (types.Photo, types.photos.Photo, types.PhotoEmpty)):
         return types.InputMediaPhoto(
             id=get_input_photo(media),
-            ttl_seconds=ttl
+            ttl_seconds=ttl,
+            spoiler=spoiler
         )
 
     if isinstance(media, types.MessageMediaDocument):
         return types.InputMediaDocument(
             id=get_input_document(media.document),
-            ttl_seconds=ttl or media.ttl_seconds
+            ttl_seconds=ttl or media.ttl_seconds,
+            spoiler=spoiler if spoiler is not None else media.spoiler
         )
 
     if isinstance(media, (types.Document, types.DocumentEmpty)):
         return types.InputMediaDocument(
             id=get_input_document(media),
-            ttl_seconds=ttl
+            ttl_seconds=ttl,
+            spoiler=spoiler
         )
 
     if isinstance(media, (types.InputFile, types.InputFileBig)):
         if is_photo:
-            return types.InputMediaUploadedPhoto(file=media, ttl_seconds=ttl)
+            return types.InputMediaUploadedPhoto(
+                file=media,
+                ttl_seconds=ttl,
+                spoiler=spoiler
+            )
         else:
             attrs, mime = get_attributes(
                 media,
@@ -481,8 +489,13 @@ def get_input_media(
                 supports_streaming=supports_streaming
             )
             return types.InputMediaUploadedDocument(
-                file=media, mime_type=mime, attributes=attrs, force_file=force_document,
-                ttl_seconds=ttl)
+                file=media,
+                mime_type=mime,
+                attributes=attrs,
+                force_file=force_document,
+                ttl_seconds=ttl,
+                spoiler=spoiler
+            )
 
     if isinstance(media, types.MessageMediaGame):
         return types.InputMediaGame(id=types.InputGameID(

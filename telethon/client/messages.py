@@ -645,7 +645,8 @@ class MessageMethods:
             comment_to: 'typing.Union[int, types.Message]' = None,
             nosound_video: bool = None,
             send_as: typing.Optional['hints.EntityLike'] = None,
-            message_effect_id: typing.Optional[int] = None
+            message_effect_id: typing.Optional[int] = None,
+            spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -778,6 +779,11 @@ class MessageMethods:
             message_effect_id (`int`, optional):
                 Unique identifier of the message effect to be added to the message; for private chats only
 
+            spoiler (`bool`, optional):
+                Whether to spoiler the media in the sent message. When sending an
+                album, this may be a list of booleans, which will be
+                assigned to the media pairwise.
+
         Returns
             The sent `custom.Message <telethon.tl.custom.message.Message>`.
 
@@ -849,8 +855,9 @@ class MessageMethods:
                 schedule=schedule, supports_streaming=supports_streaming,
                 formatting_entities=formatting_entities,
                 comment_to=comment_to, background=background,
-                nosound_video=nosound_video,
-                send_as=send_as, message_effect_id=message_effect_id
+                nosound_video=nosound_video, send_as=send_as,
+                message_effect_id=message_effect_id,
+                spoiler=spoiler
             )
 
         entity = await self.get_input_entity(entity)
@@ -1096,7 +1103,8 @@ class MessageMethods:
             force_document: bool = False,
             buttons: typing.Optional['hints.MarkupLike'] = None,
             supports_streaming: bool = False,
-            schedule: 'hints.DateLike' = None
+            schedule: 'hints.DateLike' = None,
+            spoiler: bool = None
     ) -> 'types.Message':
         """
         Edits the given message to change its text or media.
@@ -1180,6 +1188,9 @@ class MessageMethods:
                 Note that this parameter will have no effect if you are
                 trying to edit a message that was sent via inline bots.
 
+            spoiler (`bool`, optional):
+                Whether to spoiler the media in the sent message.
+
         Returns
             The edited `Message <telethon.tl.custom.message.Message>`,
             unless `entity` was a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64` in which
@@ -1218,11 +1229,14 @@ class MessageMethods:
 
         if formatting_entities is None:
             text, formatting_entities = await self._parse_message_text(text, parse_mode)
+
         file_handle, media, image = await self._file_to_media(file,
-                supports_streaming=supports_streaming,
-                thumb=thumb,
-                attributes=attributes,
-                force_document=force_document)
+            supports_streaming=supports_streaming,
+            thumb=thumb,
+            attributes=attributes,
+            force_document=force_document,
+            spoiler=spoiler
+        )
 
         if isinstance(entity, (types.InputBotInlineMessageID, types.InputBotInlineMessageID64)):
             request = functions.messages.EditInlineBotMessageRequest(
