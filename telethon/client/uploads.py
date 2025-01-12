@@ -142,6 +142,7 @@ class UploadMethods:
             nosound_video: bool = None,
             send_as: typing.Optional['hints.EntityLike'] = None,
             message_effect_id: typing.Optional[int] = None,
+            spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
             **kwargs) -> typing.Union[typing.List[typing.Any], typing.Any]:
         """
         Sends message with the given file to the specified entity.
@@ -334,6 +335,11 @@ class UploadMethods:
             message_effect_id (`int`, optional):
                 Unique identifier of the message effect to be added to the message; for private chats only
 
+            spoiler (`bool`, optional):
+                Whether to spoiler the media in the sent message. When sending an
+                album, this may be a list of booleans, which will be
+                assigned to the media pairwise.
+
         Returns
             The `Message <telethon.tl.custom.message.Message>` (or messages)
             containing the sent file, or messages if a list of them was passed.
@@ -425,6 +431,11 @@ class UploadMethods:
             if not all(isinstance(ent, types.TypeMessageEntity) for sublist in formatting_entities for ent in sublist):
                 raise TypeError('All entities must be instances of <types.TypeMessageEntity>')
 
+            if utils.is_list_like(spoiler):
+                spoilers = spoiler
+            else:
+                spoilers = [spoiler]
+
             result = []
             while file:
                 result += await self._send_album(
@@ -433,11 +444,13 @@ class UploadMethods:
                     parse_mode=parse_mode, silent=silent, schedule=schedule,
                     supports_streaming=supports_streaming, clear_draft=clear_draft,
                     force_document=force_document, background=background,
-                    send_as=send_as, message_effect_id=message_effect_id
+                    send_as=send_as, message_effect_id=message_effect_id,
+                    spoiler=spoilers[:10]
                 )
                 file = file[10:]
                 captions = captions[10:]
                 formatting_entities = formatting_entities[10:]
+                spoilers = spoilers[10:]
                 sent_count += 10
 
             return result
@@ -455,7 +468,7 @@ class UploadMethods:
             attributes=attributes, allow_cache=allow_cache, thumb=thumb,
             voice_note=voice_note, video_note=video_note,
             supports_streaming=supports_streaming, ttl=ttl,
-            nosound_video=nosound_video,
+            nosound_video=nosound_video, spoiler=spoiler
         )
 
         # e.g. invalid cast from :tl:`MessageMediaWebPage`
@@ -481,7 +494,8 @@ class UploadMethods:
                           supports_streaming=None, clear_draft=None,
                           force_document=False, background=None, ttl=None,
                           send_as: typing.Optional['hints.EntityLike'] = None,
-                          message_effect_id: typing.Optional[int] = None):
+                          message_effect_id: typing.Optional[int] = None,
+                          spoiler=None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -509,6 +523,14 @@ class UploadMethods:
             for c in reversed(caption):  # Pop from the end (so reverse)
                 captions.append(await self._parse_message_text(c or '', parse_mode))
 
+        if utils.is_list_like(spoiler):
+            spoilers = spoiler
+        else:
+            spoilers = [spoiler]
+
+        while len(spoilers) < len(files):
+            spoilers.append(None)
+
         reply_to = utils.get_message_id(reply_to)
 
         used_callback = None if not progress_callback else (
@@ -526,20 +548,27 @@ class UploadMethods:
             fh, fm, _ = await self._file_to_media(
                 file, supports_streaming=supports_streaming,
                 force_document=force_document, ttl=ttl,
-                progress_callback=used_callback, nosound_video=True)
+                progress_callback=used_callback, nosound_video=True,
+                spoiler=spoilers[sent_count])
             if isinstance(fm, (types.InputMediaUploadedPhoto, types.InputMediaPhotoExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
                     entity, media=fm
                 ))
 
-                fm = utils.get_input_media(r.photo)
+                fm = utils.get_input_media(
+                    r.photo,
+                    spoiler=spoilers[sent_count]
+                )
             elif isinstance(fm, (types.InputMediaUploadedDocument, types.InputMediaDocumentExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
                     entity, media=fm
                 ))
 
                 fm = utils.get_input_media(
-                    r.document, supports_streaming=supports_streaming)
+                    r.document,
+                    supports_streaming=supports_streaming,
+                    spoiler=spoilers[sent_count]
+                )
 
             if captions:
                 caption, msg_entities = captions.pop()
@@ -758,7 +787,7 @@ class UploadMethods:
             progress_callback=None, attributes=None, thumb=None,
             allow_cache=True, voice_note=False, video_note=False,
             supports_streaming=False, mime_type=None, as_image=None,
-            ttl=None, nosound_video=None):
+            ttl=None, nosound_video=None, spoiler=None):
         if not file:
             return None, None, None
 
@@ -788,7 +817,8 @@ class UploadMethods:
                     voice_note=voice_note,
                     video_note=video_note,
                     supports_streaming=supports_streaming,
-                    ttl=ttl
+                    ttl=ttl,
+                    spoiler=spoiler
                 ), as_image)
             except TypeError:
                 # Can't turn whatever was given into media
@@ -807,13 +837,13 @@ class UploadMethods:
             )
         elif re.match('https?://', file):
             if as_image:
-                media = types.InputMediaPhotoExternal(file, ttl_seconds=ttl)
+                media = types.InputMediaPhotoExternal(file, ttl_seconds=ttl, spoiler=spoiler)
             else:
-                media = types.InputMediaDocumentExternal(file, ttl_seconds=ttl)
+                media = types.InputMediaDocumentExternal(file, ttl_seconds=ttl, spoiler=spoiler)
         else:
             bot_file = utils.resolve_bot_file_id(file)
             if bot_file:
-                media = utils.get_input_media(bot_file, ttl=ttl)
+                media = utils.get_input_media(bot_file, ttl=ttl, spoiler=spoiler)
 
         if media:
             pass  # Already have media, don't check the rest
@@ -823,7 +853,7 @@ class UploadMethods:
                 'an HTTP URL or a valid bot-API-like file ID'.format(file)
             )
         elif as_image:
-            media = types.InputMediaUploadedPhoto(file_handle, ttl_seconds=ttl)
+            media = types.InputMediaUploadedPhoto(file_handle, ttl_seconds=ttl, spoiler=spoiler)
         else:
             attributes, mime_type = utils.get_attributes(
                 file,
@@ -854,7 +884,8 @@ class UploadMethods:
                 thumb=thumb,
                 force_file=force_document and not is_image,
                 ttl_seconds=ttl,
-                nosound_video=nosound_video
+                nosound_video=nosound_video,
+                spoiler=spoiler
             )
         return file_handle, media, as_image
 
