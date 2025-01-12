@@ -9,9 +9,9 @@ import warnings
 from ..helpers import add_surrogate, del_surrogate, within_surrogate, strip_text
 from ..tl import TLObject
 from ..tl.types import (
-    MessageEntityBold, MessageEntityItalic, MessageEntityCode,
-    MessageEntityPre, MessageEntityTextUrl, MessageEntityMentionName,
-    MessageEntityStrike
+    MessageEntityBold, MessageEntityCustomEmoji, MessageEntityItalic,
+    MessageEntityCode, MessageEntityPre, MessageEntityTextUrl,
+    MessageEntityMentionName, MessageEntitySpoiler, MessageEntityStrike
 )
 
 DEFAULT_DELIMITERS = {
@@ -19,12 +19,14 @@ DEFAULT_DELIMITERS = {
     '__': MessageEntityItalic,
     '~~': MessageEntityStrike,
     '`': MessageEntityCode,
-    '```': MessageEntityPre
+    '```': MessageEntityPre,
+    '|': MessageEntitySpoiler
 }
 
 DEFAULT_URL_RE = re.compile(r'\[([^]]*?)\]\(([\s\S]*?)\)')
 DEFAULT_URL_FORMAT = '[{0}]({1})'
 
+CUSTOM_EMOJI_RE = re.compile(r'\[([^\]]+)\]\(emoji/(\d+)\)')
 
 def parse(message, delimiters=None, url_re=None):
     """
@@ -108,7 +110,9 @@ def parse(message, delimiters=None, url_re=None):
         elif url_re:
             m = url_re.match(message, pos=i)
             if m:
-                # Replace the whole match with only the inline URL text.
+                em_m = CUSTOM_EMOJI_RE.match(message, pos=i)
+
+                # Replace the whole match with only the inline URL text or emoji.
                 message = ''.join((
                     message[:m.start()],
                     m.group(1),
@@ -121,11 +125,18 @@ def parse(message, delimiters=None, url_re=None):
                     if ent.offset + ent.length > m.start():
                         ent.length -= delim_size
 
-                result.append(MessageEntityTextUrl(
-                    offset=m.start(), length=len(m.group(1)),
-                    url=del_surrogate(m.group(2))
-                ))
-                i += len(m.group(1))
+                if em_m:
+                    result.append(MessageEntityCustomEmoji(
+                        offset=em_m.start(), length=len(em_m.group(1)),
+                        document_id=int(em_m.group(2))
+                    ))
+                    i += len(em_m.group(1))
+                else:
+                    result.append(MessageEntityTextUrl(
+                        offset=m.start(), length=len(m.group(1)),
+                        url=del_surrogate(m.group(2))
+                    ))
+                    i += len(m.group(1))
                 continue
 
         i += 1
@@ -173,6 +184,8 @@ def unparse(text, entities, delimiters=None, url_fmt=None):
                 url = entity.url
             elif isinstance(entity, MessageEntityMentionName):
                 url = 'tg://user?id={}'.format(entity.user_id)
+            elif isinstance(entity, MessageEntityCustomEmoji):
+                url = 'emoji/{}'.format(entity.document_id)
             if url:
                 insert_at.append((s, i, '['))
                 insert_at.append((e, -i, ']({})'.format(url)))
