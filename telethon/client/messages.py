@@ -647,6 +647,7 @@ class MessageMethods:
             send_as: typing.Optional['hints.EntityLike'] = None,
             message_effect_id: typing.Optional[int] = None,
             spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
+            noforwards: bool = None,
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -784,6 +785,9 @@ class MessageMethods:
                 album, this may be a list of booleans, which will be
                 assigned to the media pairwise.
 
+            noforwards (`bool`, optional):
+                For bots. Whether to protect the content of the sent message from being saved and forwarded.
+
         Returns
             The sent `custom.Message <telethon.tl.custom.message.Message>`.
 
@@ -857,7 +861,7 @@ class MessageMethods:
                 comment_to=comment_to, background=background,
                 nosound_video=nosound_video, send_as=send_as,
                 message_effect_id=message_effect_id,
-                spoiler=spoiler
+                spoiler=spoiler, noforwards=noforwards
             )
 
         entity = await self.get_input_entity(entity)
@@ -888,7 +892,8 @@ class MessageMethods:
                     formatting_entities=message.entities,
                     parse_mode=None,  # explicitly disable parse_mode to force using even empty formatting_entities
                     schedule=schedule,
-                    send_as=send_as, message_effect_id=message_effect_id
+                    send_as=send_as, message_effect_id=message_effect_id,
+                    noforwards=noforwards
                 )
 
             request = functions.messages.SendMessageRequest(
@@ -904,7 +909,8 @@ class MessageMethods:
                     message.media, types.MessageMediaWebPage),
                 schedule_date=schedule,
                 send_as=await self.get_input_entity(send_as) if send_as else None,
-                effect=message_effect_id
+                effect=message_effect_id,
+                noforwards=noforwards
             )
             message = message.message
         else:
@@ -927,7 +933,8 @@ class MessageMethods:
                 reply_markup=self.build_reply_markup(buttons),
                 schedule_date=schedule,
                 send_as=await self.get_input_entity(send_as) if send_as else None,
-                effect=message_effect_id
+                effect=message_effect_id,
+                noforwards=noforwards
             )
 
         result = await self(request)
@@ -962,6 +969,7 @@ class MessageMethods:
             schedule: 'hints.DateLike' = None,
             drop_author: bool = None,
             drop_media_captions: bool = None,
+            noforwards: bool = None,
     ) -> 'typing.Sequence[types.Message]':
         """
         Forwards the given messages to the specified entity.
@@ -1010,6 +1018,9 @@ class MessageMethods:
 
             drop_media_captions (`bool`, optional):
                 Whether to strip captions from media. Setting this to `True` requires that `drop_author` also be set to `True`.
+
+            noforwards (`bool`, optional):
+                For bots. Whether to protect the content of the forwarded message(s) from being saved and forwarded.
 
         Returns
             The list of forwarded `Message <telethon.tl.custom.message.Message>`,
@@ -1081,7 +1092,8 @@ class MessageMethods:
                 with_my_score=with_my_score,
                 schedule_date=schedule,
                 drop_author=drop_author,
-                drop_media_captions=drop_media_captions
+                drop_media_captions=drop_media_captions,
+                noforwards=noforwards
             )
             result = await self(req)
             sent.extend(self._get_response_message(req, result, entity))
