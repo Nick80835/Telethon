@@ -1508,6 +1508,61 @@ class MessageMethods:
         """
         return await self._pin(entity, message, unpin=True, notify=notify)
 
+    async def send_reaction(
+            self: 'TelegramClient',
+            entity: 'hints.EntityLike',
+            message: 'typing.Optional[hints.MessageIDLike]' = None,
+            *,
+            emoji: 'typing.Union[int, str, typing.Sequence[int], typing.Sequence[str], None]' = None,
+            big: bool = False,
+            add_to_recent: bool = False
+    ):
+        """
+        Adds reactions to a message.
+
+        Arguments
+            entity (`entity`):
+                The chat where the message is located.
+
+            message (`Message <telethon.tl.custom.message.Message>`):
+                The message or the message ID to react to.
+
+            emoji (`list` | `int` | `str` | `None`):
+                The reaction or list of reactions to set on the message.
+                A `str` containing an emoji, `int` containing the ID of a custom emoji,
+                or a `list` of any combination of those may be passed.
+                If it's `None` or this argument isn't passed then all reactions will be removed from the message.
+
+            big (`bool`):
+                Whether a bigger and longer reaction should be shown.
+
+            add_to_recent (`bool`):
+                Whether to add this reaction to the recent reactions list.
+        Example
+            .. code-block:: python
+
+                # React to a message
+                await client.send_reaction(chat, message, "🌭", big=True)
+        """
+        if emoji is None:
+            reactions = None
+        else:
+            if not utils.is_list_like(emoji):
+                emoji = [emoji]
+
+            reactions = [
+                types.ReactionCustomEmoji(i) if isinstance(i, int) else types.ReactionEmoji(str(i)) for i in emoji
+            ]
+
+        request = functions.messages.SendReactionRequest(
+            await self.get_input_entity(entity), 
+            utils.get_message_id(message) or 0,
+            big, add_to_recent,
+            reaction=reactions
+        )
+
+        return await self(request)
+
     async def _pin(self, entity, message, *, unpin, notify=False, pm_oneside=False):
         message = utils.get_message_id(message) or 0
         entity = await self.get_input_entity(entity)
