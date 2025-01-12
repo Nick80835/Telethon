@@ -341,7 +341,7 @@ class UpdateMethods:
                         continue
                     updates, users, chats = self._message_box.apply_difference(diff, self._mb_entity_cache)
                     if updates:
-                        self._log[__name__].info('Got difference for account updates')
+                        self._log[__name__].debug('Got difference for account updates')
 
                     updates_to_dispatch.extend(self._preprocess_updates(updates, users, chats))
                     continue
@@ -439,7 +439,7 @@ class UpdateMethods:
 
                     updates, users, chats = self._message_box.apply_channel_difference(get_diff, diff, self._mb_entity_cache)
                     if updates:
-                        self._log[__name__].info('Got difference for channel %d updates', get_diff.channel.channel_id)
+                        self._log[__name__].debug('Got difference for channel %d updates', get_diff.channel.channel_id)
 
                     updates_to_dispatch.extend(self._preprocess_updates(updates, users, chats))
                     continue
