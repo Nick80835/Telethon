@@ -102,9 +102,9 @@ class InlineResult:
         elif isinstance(self.result, types.BotInlineMediaResult):
             return self.result.document
 
-    async def click(self, entity=None, reply_to=None, comment_to=None,
-                    silent=False, clear_draft=False, hide_via=False,
-                    background=None):
+    async def click(self, entity=None, reply_to=None, top_msg_id=None,
+                    comment_to=None, silent=False, clear_draft=False,
+                    hide_via=False, background=None):
         """
         Clicks this result and sends the associated `message`.
 
@@ -114,6 +114,9 @@ class InlineResult:
 
             reply_to (`int` | `Message <telethon.tl.custom.message.Message>`, optional):
                 If present, the sent message will reply to this ID or message.
+
+            top_msg_id (`int` | `Message <telethon.tl.custom.message.Message>`, optional):
+                If present, the message will be sent in this topic ID.                
 
             comment_to (`int` | `Message <telethon.tl.custom.message.Message>`, optional):
                 Similar to ``reply_to``, but replies in the linked group of a
@@ -158,7 +161,9 @@ class InlineResult:
             background=background,
             clear_draft=clear_draft,
             hide_via=hide_via,
-            reply_to=None if reply_id is None else types.InputReplyToMessage(reply_id)
+            reply_to=None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+                reply_to or top_msg_id, top_msg_id if reply_to else None
+            )
         )
         return self._client._get_response_message(
             req, await self._client(req), entity)

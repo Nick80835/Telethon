@@ -225,8 +225,11 @@ class ChatAction(EventBuilder):
             """
             Responds to the chat action message (not as a reply). Shorthand for
             `telethon.client.messages.MessageMethods.send_message` with
-            ``entity`` already set.
+            ``entity`` and ``top_msg_id`` already set.
             """
+            if self.reply_to and self.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                kwargs["top_msg_id"] = self.reply_to.reply_to_top_id or self.reply_to.reply_to_msg_id
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 
@@ -234,7 +237,7 @@ class ChatAction(EventBuilder):
             """
             Replies to the chat action message (as a reply). Shorthand for
             `telethon.client.messages.MessageMethods.send_message` with
-            both ``entity`` and ``reply_to`` already set.
+            both ``entity``, ``reply_to`` and ``top_msg_id`` already set.
 
             Has the same effect as `respond` if there is no message.
             """
@@ -242,6 +245,10 @@ class ChatAction(EventBuilder):
                 return await self.respond(*args, **kwargs)
 
             kwargs['reply_to'] = self.action_message.id
+
+            if self.reply_to and self.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                kwargs["top_msg_id"] = self.reply_to.reply_to_top_id or self.reply_to.reply_to_msg_id
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 

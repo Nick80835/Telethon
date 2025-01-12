@@ -234,7 +234,7 @@ class Album(EventBuilder):
             """
             Responds to the album (not as a reply). Shorthand for
             `telethon.client.messages.MessageMethods.send_message`
-            with ``entity`` already set.
+            with ``entity`` and ``top_msg_id`` already set.
             """
             return await self.messages[0].respond(*args, **kwargs)
 
@@ -242,7 +242,7 @@ class Album(EventBuilder):
             """
             Replies to the first photo in the album (as a reply). Shorthand
             for `telethon.client.messages.MessageMethods.send_message`
-            with both ``entity`` and ``reply_to`` already set.
+            with both ``entity``, ``reply_to`` and ``top_msg_id`` already set.
             """
             return await self.messages[0].reply(*args, **kwargs)
 

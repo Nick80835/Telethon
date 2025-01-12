@@ -271,13 +271,21 @@ class CallbackQuery(EventBuilder):
             """
             Responds to the message (not as a reply). Shorthand for
             `telethon.client.messages.MessageMethods.send_message` with
-            ``entity`` already set.
+            ``entity`` and ``top_msg_id`` already set.
 
             This method also creates a task to `answer` the callback.
 
             This method will likely fail if `via_inline` is `True`.
             """
             self._client.loop.create_task(self.answer())
+
+            try:
+                m = await self.get_message()
+                if m.reply_to and m.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                    kwargs["top_msg_id"] = m.reply_to.reply_to_top_id or m.reply_to.reply_to_msg_id
+            except:
+                pass # if get_message() fails, it was probably unnecessary to begin with
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 
@@ -285,7 +293,7 @@ class CallbackQuery(EventBuilder):
             """
             Replies to the message (as a reply). Shorthand for
             `telethon.client.messages.MessageMethods.send_message` with
-            both ``entity`` and ``reply_to`` already set.
+            both ``entity``,``reply_to`` and ``top_msg_id`` already set.
 
             This method also creates a task to `answer` the callback.
 
@@ -293,6 +301,14 @@ class CallbackQuery(EventBuilder):
             """
             self._client.loop.create_task(self.answer())
             kwargs['reply_to'] = self.query.msg_id
+
+            try:
+                m = await self.get_message()
+                if m.reply_to and m.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                    kwargs["top_msg_id"] = m.reply_to.reply_to_top_id or m.reply_to.reply_to_msg_id
+            except:
+                pass # if get_message() fails, it was probably unnecessary to begin with
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 
