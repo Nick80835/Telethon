@@ -1094,6 +1094,19 @@ class Message(ChatGetter, SenderGetter, TLObject):
             return await self._client.unpin_message(
                 await self.get_input_chat(), self.id)
 
+    async def react(self, emoji=None, big=None, add_to_recent=None):
+        """
+        Reacts to the message. Shorthand for
+        `telethon.client.messages.MessageMethods.send_reaction`
+        with both ``entity`` and ``message`` already set.
+        """
+        if self._client:
+            return await self._client.send_reaction(
+                await self.get_input_chat(), self.id,
+                emoji=emoji, big=big,
+                add_to_recent=add_to_recent
+            )
+
     # endregion Public Methods
 
     # region Private Methods
