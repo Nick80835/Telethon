@@ -43,6 +43,7 @@ mimetypes.add_type('image/vnd.adobe.photoshop', '.psd')
 mimetypes.add_type('video/mp4', '.mp4')
 mimetypes.add_type('video/quicktime', '.mov')
 mimetypes.add_type('video/avi', '.avi')
+mimetypes.add_type('video/x-matroska', '.mkv')
 
 mimetypes.add_type('audio/mpeg', '.mp3')
 mimetypes.add_type('audio/m4a', '.m4a')
