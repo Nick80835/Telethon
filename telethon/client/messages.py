@@ -629,6 +629,7 @@ class MessageMethods:
             message: 'hints.MessageLike' = '',
             *,
             reply_to: 'typing.Union[int, types.Message]' = None,
+            top_msg_id: 'typing.Union[int, types.Message]' = None,
             attributes: 'typing.Sequence[types.TypeDocumentAttribute]' = None,
             parse_mode: typing.Optional[str] = (),
             formatting_entities: typing.Optional[typing.List[types.TypeMessageEntity]] = None,
@@ -681,6 +682,10 @@ class MessageMethods:
             reply_to (`int` | `Message <telethon.tl.custom.message.Message>`, optional):
                 Whether to reply to a message or not. If an integer is provided,
                 it should be the ID of the message that it should reply to.
+
+            top_msg_id (`int` | `Message <telethon.tl.custom.message.Message>`, optional):
+                Whether to send the message to a topic or not. If an integer is provided,
+                it should be the ID of the topic the message will be sent in.
 
             attributes (`list`, optional):
                 Optional attributes that override the inferred ones, like
@@ -901,7 +906,9 @@ class MessageMethods:
                 message=message.message or '',
                 silent=silent,
                 background=background,
-                reply_to=None if reply_to is None else types.InputReplyToMessage(reply_to),
+                reply_to=None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+                    reply_to or top_msg_id, top_msg_id if reply_to else None
+                ),
                 reply_markup=markup,
                 entities=message.entities,
                 clear_draft=clear_draft,
@@ -926,7 +933,9 @@ class MessageMethods:
                 message=message,
                 entities=formatting_entities,
                 no_webpage=not link_preview,
-                reply_to=None if reply_to is None else types.InputReplyToMessage(reply_to),
+                reply_to=None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+                    reply_to or top_msg_id, top_msg_id if reply_to else None
+                ),
                 clear_draft=clear_draft,
                 silent=silent,
                 background=background,
@@ -962,6 +971,7 @@ class MessageMethods:
             messages: 'typing.Union[hints.MessageIDLike, typing.Sequence[hints.MessageIDLike]]',
             from_peer: 'hints.EntityLike' = None,
             *,
+            top_msg_id: int = None,
             background: bool = None,
             with_my_score: bool = None,
             silent: bool = None,
@@ -998,6 +1008,10 @@ class MessageMethods:
                 Defaults to `False` (send with a notification sound unless
                 the person has the chat muted). Set it to `True` to alter
                 this behaviour.
+
+            top_msg_id (`int`):
+                Whether to forward the message(s) to a topic or not. If an integer is provided,
+                it should be the ID of the topic the message will be sent in.
 
             background (`bool`, optional):
                 Whether the message should be forwarded in background.
@@ -1088,6 +1102,7 @@ class MessageMethods:
                 id=chunk,
                 to_peer=entity,
                 silent=silent,
+                top_msg_id=top_msg_id,
                 background=background,
                 with_my_score=with_my_score,
                 schedule_date=schedule,

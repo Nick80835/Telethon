@@ -23,6 +23,9 @@ class Draft:
 
         reply_to_msg_id (`int`):
             The message ID that the draft will reply to.
+
+        top_msg_id (`int`):
+            The topic ID that the draft will be sent to.
     """
     def __init__(self, client, entity, draft):
         self._client = client
@@ -38,6 +41,7 @@ class Draft:
         self.date = draft.date
         self.link_preview = not draft.no_webpage
         self.reply_to_msg_id = draft.reply_to.reply_to_msg_id if isinstance(draft.reply_to, types.InputReplyToMessage) else None
+        self.top_msg_id = draft.reply_to.top_msg_id if isinstance(draft.reply_to, types.InputReplyToMessage) else None
 
     @property
     def entity(self):
@@ -105,8 +109,8 @@ class Draft:
         return not self._text
 
     async def set_message(
-            self, text=None, reply_to=0, parse_mode=(),
-            link_preview=None):
+            self, text=None, reply_to=0, top_msg_id=0,
+            parse_mode=(), link_preview=None):
         """
         Changes the draft message on the Telegram servers. The changes are
         reflected in this object.
@@ -129,6 +133,9 @@ class Draft:
         if reply_to == 0:
             reply_to = self.reply_to_msg_id
 
+        if top_msg_id == 0:
+            top_msg_id = self.top_msg_id
+
         if link_preview is None:
             link_preview = self.link_preview
 
@@ -139,7 +146,9 @@ class Draft:
             peer=self._peer,
             message=raw_text,
             no_webpage=not link_preview,
-            reply_to=None if reply_to is None else types.InputReplyToMessage(reply_to),
+            reply_to=None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+                    reply_to or top_msg_id, top_msg_id if reply_to else None
+            ),
             entities=entities
         ))
 
@@ -148,6 +157,7 @@ class Draft:
             self._raw_text = raw_text
             self.link_preview = link_preview
             self.reply_to_msg_id = reply_to
+            self.top_msg_id = top_msg_id
             self.date = datetime.datetime.now(tz=datetime.timezone.utc)
 
         return result
@@ -159,8 +169,8 @@ class Draft:
         """
         await self._client.send_message(
             self._peer, self.text, reply_to=self.reply_to_msg_id,
-            link_preview=self.link_preview, parse_mode=parse_mode,
-            clear_draft=clear
+            top_msg_id=self.top_msg_id, link_preview=self.link_preview,
+            parse_mode=parse_mode, clear_draft=clear
         )
 
     async def delete(self):
@@ -181,7 +191,8 @@ class Draft:
             'entity': entity,
             'date': self.date,
             'link_preview': self.link_preview,
-            'reply_to_msg_id': self.reply_to_msg_id
+            'reply_to_msg_id': self.reply_to_msg_id,
+            'top_msg_id': self.top_msg_id
         }
 
     def __str__(self):

@@ -122,6 +122,7 @@ class UploadMethods:
             clear_draft: bool = False,
             progress_callback: 'hints.ProgressCallback' = None,
             reply_to: 'hints.MessageIDLike' = None,
+            top_msg_id: 'hints.MessageIDLike' = None,
             attributes: 'typing.Sequence[types.TypeDocumentAttribute]' = None,
             thumb: 'hints.FileLike' = None,
             allow_cache: bool = True,
@@ -235,6 +236,9 @@ class UploadMethods:
 
             reply_to (`int` | `Message <telethon.tl.custom.message.Message>`):
                 Same as `reply_to` from `send_message`.
+
+            top_msg_id (`int` | `Message <telethon.tl.custom.message.Message>`):
+                Same as `top_msg_id` from `send_message`.
 
             attributes (`list`, optional):
                 Optional attributes that override the inferred ones, like
@@ -489,7 +493,9 @@ class UploadMethods:
             raise TypeError('Cannot use {!r} as file'.format(file))
 
         markup = self.build_reply_markup(buttons)
-        reply_to = None if reply_to is None else types.InputReplyToMessage(reply_to)
+        reply_to = None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+            reply_to or top_msg_id, top_msg_id if reply_to else None
+        )
         request = functions.messages.SendMediaRequest(
             entity, media, reply_to=reply_to, message=caption,
             entities=msg_entities, reply_markup=markup, silent=silent,
@@ -509,7 +515,7 @@ class UploadMethods:
                           force_document=False, background=None, ttl=None,
                           send_as: typing.Optional['hints.EntityLike'] = None,
                           message_effect_id: typing.Optional[int] = None,
-                          spoiler=None, noforwards=None):
+                          spoiler=None, noforwards=None, top_msg_id=None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -597,13 +603,14 @@ class UploadMethods:
 
         # Now we can construct the multi-media request
         request = functions.messages.SendMultiMediaRequest(
-            entity, reply_to=None if reply_to is None else types.InputReplyToMessage(reply_to), multi_media=media,
-            silent=silent, schedule_date=schedule, clear_draft=clear_draft,
-            background=background,
+            entity,
+            reply_to=None if (reply_to or top_msg_id) is None else types.InputReplyToMessage(
+                reply_to or top_msg_id, top_msg_id if reply_to else None
+            ),
+            multi_media=media, silent=silent, schedule_date=schedule, clear_draft=clear_draft,
+            background=background, noforwards=noforwards,
             send_as=await self.get_input_entity(send_as) if send_as else None,
             effect=message_effect_id,
-            background=background,
-            noforwards=noforwards
         )
         result = await self(request)
 

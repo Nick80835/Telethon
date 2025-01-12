@@ -812,9 +812,12 @@ class Message(ChatGetter, SenderGetter, TLObject):
         """
         Responds to the message (not as a reply). Shorthand for
         `telethon.client.messages.MessageMethods.send_message`
-        with ``entity`` already set.
+        with ``entity`` and ``top_msg_id`` already set.
         """
         if self._client:
+            if isinstance(self.reply_to, types.MessageReplyHeader) and self.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                kwargs["top_msg_id"] = self.reply_to.reply_to_top_id or self.reply_to.reply_to_msg_id
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 
@@ -822,10 +825,14 @@ class Message(ChatGetter, SenderGetter, TLObject):
         """
         Replies to the message (as a reply). Shorthand for
         `telethon.client.messages.MessageMethods.send_message`
-        with both ``entity`` and ``reply_to`` already set.
+        with both ``entity``, ``reply_to`` and ``top_msg_id`` already set.
         """
         if self._client:
             kwargs['reply_to'] = self.id
+
+            if isinstance(self.reply_to, types.MessageReplyHeader) and self.reply_to.forum_topic and not kwargs.get("top_msg_id"):
+                kwargs["top_msg_id"] = self.reply_to.reply_to_top_id or self.reply_to.reply_to_msg_id
+
             return await self._client.send_message(
                 await self.get_input_chat(), *args, **kwargs)
 
