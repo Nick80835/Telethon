@@ -144,6 +144,7 @@ class UploadMethods:
             send_as: typing.Optional['hints.EntityLike'] = None,
             message_effect_id: typing.Optional[int] = None,
             spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
+            noforwards: bool = None,
             **kwargs) -> typing.Union[typing.List[typing.Any], typing.Any]:
         """
         Sends message with the given file to the specified entity.
@@ -348,6 +349,9 @@ class UploadMethods:
                 album, this may be a list of booleans, which will be
                 assigned to the media pairwise.
 
+            noforwards (`bool`, optional):
+                For bots. Whether to protect the content of the sent message from being saved and forwarded.
+
         Returns
             The `Message <telethon.tl.custom.message.Message>` (or messages)
             containing the sent file, or messages if a list of them was passed.
@@ -453,7 +457,7 @@ class UploadMethods:
                     supports_streaming=supports_streaming, clear_draft=clear_draft,
                     force_document=force_document, background=background,
                     send_as=send_as, message_effect_id=message_effect_id,
-                    spoiler=spoilers[:10]
+                    spoiler=spoilers[:10], noforwards=noforwards
                 )
                 file = file[10:]
                 captions = captions[10:]
@@ -492,7 +496,8 @@ class UploadMethods:
             schedule_date=schedule, clear_draft=clear_draft,
             background=background,
             send_as=await self.get_input_entity(send_as) if send_as else None,
-            effect=message_effect_id
+            effect=message_effect_id,
+            noforwards=noforwards
         )
         return self._get_response_message(request, await self(request), entity)
 
@@ -504,7 +509,7 @@ class UploadMethods:
                           force_document=False, background=None, ttl=None,
                           send_as: typing.Optional['hints.EntityLike'] = None,
                           message_effect_id: typing.Optional[int] = None,
-                          spoiler=None):
+                          spoiler=None, noforwards=None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -596,7 +601,9 @@ class UploadMethods:
             silent=silent, schedule_date=schedule, clear_draft=clear_draft,
             background=background,
             send_as=await self.get_input_entity(send_as) if send_as else None,
-            effect=message_effect_id
+            effect=message_effect_id,
+            background=background,
+            noforwards=noforwards
         )
         result = await self(request)
 
