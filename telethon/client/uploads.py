@@ -124,7 +124,7 @@ class UploadMethods:
             reply_to: 'hints.MessageIDLike' = None,
             top_msg_id: 'hints.MessageIDLike' = None,
             attributes: 'typing.Sequence[types.TypeDocumentAttribute]' = None,
-            thumb: 'hints.FileLike' = None,
+            thumb: typing.Union['hints.FileLike', typing.Sequence['hints.FileLike']] = None,
             allow_cache: bool = True,
             parse_mode: str = (),
             formatting_entities: typing.Optional[
@@ -452,6 +452,11 @@ class UploadMethods:
             else:
                 spoilers = [spoiler]
 
+            if utils.is_list_like(thumb):
+                thumbs = thumb
+            else:
+                thumbs = [thumb]
+
             result = []
             while file:
                 result += await self._send_album(
@@ -461,10 +466,12 @@ class UploadMethods:
                     supports_streaming=supports_streaming, clear_draft=clear_draft,
                     force_document=force_document, background=background,
                     send_as=send_as, message_effect_id=message_effect_id,
-                    spoiler=spoilers[:10], noforwards=noforwards
+                    spoiler=spoilers[:10], noforwards=noforwards,
+                    thumb=thumbs[:10]
                 )
                 file = file[10:]
                 captions = captions[10:]
+                thumbs = thumbs[10:]
                 formatting_entities = formatting_entities[10:]
                 spoilers = spoilers[10:]
                 sent_count += 10
@@ -515,7 +522,8 @@ class UploadMethods:
                           force_document=False, background=None, ttl=None,
                           send_as: typing.Optional['hints.EntityLike'] = None,
                           message_effect_id: typing.Optional[int] = None,
-                          spoiler=None, noforwards=None, top_msg_id=None):
+                          spoiler=None, noforwards=None, top_msg_id=None,
+                          thumb=None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -551,6 +559,14 @@ class UploadMethods:
         while len(spoilers) < len(files):
             spoilers.append(None)
 
+        if utils.is_list_like(thumb):
+            thumbs = thumb
+        else:
+            thumbs = [thumb]
+
+        while len(thumbs) < len(files):
+            thumbs.append(None)
+
         reply_to = utils.get_message_id(reply_to)
 
         used_callback = None if not progress_callback else (
@@ -569,7 +585,7 @@ class UploadMethods:
                 file, supports_streaming=supports_streaming,
                 force_document=force_document, ttl=ttl,
                 progress_callback=used_callback, nosound_video=True,
-                spoiler=spoilers[sent_count])
+                spoiler=spoilers[sent_count], thumb=thumbs[sent_count])
             if isinstance(fm, (types.InputMediaUploadedPhoto, types.InputMediaPhotoExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
                     entity, media=fm
