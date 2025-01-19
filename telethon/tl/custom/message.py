@@ -792,19 +792,40 @@ class Message(ChatGetter, SenderGetter, TLObject):
 
             # Bots cannot access other bots' messages by their ID.
             # However they can access them through replies...
-            self._reply_message = await self._client.get_messages(
-                await self.get_input_chat() if self.is_channel else None,
-                ids=types.InputMessageReplyTo(self.id)
-            )
+            if self.reply_to.reply_from and self.reply_to.reply_to_peer_id and self.reply_to.reply_to_msg_id:
+                reply_to_peer = self.reply_to.reply_to_peer_id
+                reply_to_id = self.reply_to.reply_to_msg_id
+            elif self.is_channel:
+                reply_to_peer = await self.get_input_chat()
+                reply_to_id = types.InputMessageReplyTo(self.id)
+            else:
+                reply_to_peer = None
+                reply_to_id = types.InputMessageReplyTo(self.id)
+
+            try:
+                self._reply_message = await self._client.get_messages(
+                    reply_to_peer,
+                    ids=reply_to_id
+                )
+            except errors.rpcerrorlist.ChannelPrivateError:
+                # Reply is to a message in a private channel that is inaccessible
+                pass
+            except errors.rpcerrorlist.BotMethodInvalidError:
+                # Likely from a basic group or private chat and client is a bot
+                pass
+
             if not self._reply_message:
                 # ...unless the current message got deleted.
                 #
                 # If that's the case, give it a second chance accessing
                 # directly by its ID.
-                self._reply_message = await self._client.get_messages(
-                    self._input_chat if self.is_channel else None,
-                    ids=self.reply_to.reply_to_msg_id
-                )
+                try:
+                    self._reply_message = await self._client.get_messages(
+                        self._input_chat if self.is_channel else None,
+                        ids=self.reply_to.reply_to_msg_id
+                    )
+                except errors.rpcerrorlist.BotMethodInvalidError:
+                    pass
 
         return self._reply_message
 
