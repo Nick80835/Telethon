@@ -649,6 +649,7 @@ class MessageMethods:
             message_effect_id: typing.Optional[int] = None,
             spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
             noforwards: bool = None,
+            business_connection_id: str = None,
     ) -> 'types.Message':
         """
         Sends a message to the specified user, chat or channel.
@@ -793,6 +794,10 @@ class MessageMethods:
             noforwards (`bool`, optional):
                 For bots. Whether to protect the content of the sent message from being saved and forwarded.
 
+            business_connection_id (`str`, optional):
+                Unique identifier of the business connection on behalf of which the
+                message will be sent.
+
         Returns
             The sent `custom.Message <telethon.tl.custom.message.Message>`.
 
@@ -866,7 +871,7 @@ class MessageMethods:
                 comment_to=comment_to, background=background,
                 nosound_video=nosound_video, send_as=send_as,
                 message_effect_id=message_effect_id,
-                spoiler=spoiler, noforwards=noforwards
+                business_connection_id=business_connection_id
             )
 
         entity = await self.get_input_entity(entity)
@@ -946,7 +951,7 @@ class MessageMethods:
                 noforwards=noforwards
             )
 
-        result = await self(request)
+        result = await self(request, business_connection_id=business_connection_id)
         if isinstance(result, types.UpdateShortSentMessage):
             message = types.Message(
                 id=result.id,
@@ -1131,7 +1136,8 @@ class MessageMethods:
             buttons: typing.Optional['hints.MarkupLike'] = None,
             supports_streaming: bool = False,
             schedule: 'hints.DateLike' = None,
-            spoiler: bool = None
+            spoiler: bool = None,
+            business_connection_id: str = None
     ) -> 'types.Message':
         """
         Edits the given message to change its text or media.
@@ -1218,6 +1224,10 @@ class MessageMethods:
             spoiler (`bool`, optional):
                 Whether to spoiler the media in the sent message.
 
+            business_connection_id (`str`, optional):
+                Unique identifier of the business connection on behalf of which the
+                message will be edited. (I don't know if this is necessary here.)
+
         Returns
             The edited `Message <telethon.tl.custom.message.Message>`,
             unless `entity` was a :tl:`InputBotInlineMessageID` or :tl:`InputBotInlineMessageID64` in which
@@ -1284,7 +1294,7 @@ class MessageMethods:
                 finally:
                     await self._return_exported_sender(sender)
             else:
-                return await self(request)
+                return await self(request, business_connection_id=business_connection_id)
 
         entity = await self.get_input_entity(entity)
         request = functions.messages.EditMessageRequest(
@@ -1297,7 +1307,7 @@ class MessageMethods:
             reply_markup=self.build_reply_markup(buttons),
             schedule_date=schedule
         )
-        msg = self._get_response_message(request, await self(request), entity)
+        msg = self._get_response_message(request, await self(request, business_connection_id=business_connection_id), entity)
         return msg
 
     async def delete_messages(

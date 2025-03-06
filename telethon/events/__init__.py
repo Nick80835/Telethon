@@ -5,6 +5,9 @@ from .messagedeleted import MessageDeleted
 from .messageedited import MessageEdited
 from .messageread import MessageRead
 from .newmessage import NewMessage
+from .businessmessagedeleted import BusinessMessageDeleted
+from .businessmessageedited import BusinessMessageEdited
+from .newbusinessmessage import NewBusinessMessage
 from .userupdate import UserUpdate
 from .callbackquery import CallbackQuery
 from .inlinequery import InlineQuery

@@ -26,10 +26,10 @@ def _fmt_flood(delay, request, *, early=False, td=datetime.timedelta):
 
 
 class UserMethods:
-    async def __call__(self: 'TelegramClient', request, ordered=False, flood_sleep_threshold=None):
-        return await self._call(self._sender, request, ordered=ordered)
+    async def __call__(self: 'TelegramClient', request, ordered=False, flood_sleep_threshold=None, business_connection_id=None):
+        return await self._call(self._sender, request, ordered=ordered, business_connection_id=business_connection_id)
 
-    async def _call(self: 'TelegramClient', sender, request, ordered=False, flood_sleep_threshold=None):
+    async def _call(self: 'TelegramClient', sender, request, ordered=False, flood_sleep_threshold=None, business_connection_id=None):
         if self._loop is not None and self._loop != helpers.get_running_loop():
             raise RuntimeError('The asyncio event loop must not change after connection (see the FAQ for details)')
         # if the loop is None it will fail with a connection error later on
@@ -62,6 +62,13 @@ class UserMethods:
                 else:
                     # This should only run once as requests should be a list of 1 item
                     request = functions.InvokeWithoutUpdatesRequest(r)
+
+            if business_connection_id is not None:
+                if utils.is_list_like(request):
+                    request[i] = functions.InvokeWithBusinessConnectionRequest(business_connection_id, r)
+                else:
+                    # This should only run once as requests should be a list of 1 item
+                    request = functions.InvokeWithBusinessConnectionRequest(business_connection_id, r)
 
         request_index = 0
         last_error = None

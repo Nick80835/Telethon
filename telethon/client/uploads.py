@@ -145,6 +145,7 @@ class UploadMethods:
             message_effect_id: typing.Optional[int] = None,
             spoiler: typing.Union[bool, typing.Sequence[bool]] = None,
             noforwards: bool = None,
+            business_connection_id: str = None,
             **kwargs) -> typing.Union[typing.List[typing.Any], typing.Any]:
         """
         Sends message with the given file to the specified entity.
@@ -348,6 +349,10 @@ class UploadMethods:
             noforwards (`bool`, optional):
                 For bots. Whether to protect the content of the sent message from being saved and forwarded.
 
+            business_connection_id (`str`, optional):
+                Unique identifier of the business connection on behalf of which the
+                message will be sent.
+
         Returns
             The `Message <telethon.tl.custom.message.Message>` (or messages)
             containing the sent file, or messages if a list of them was passed.
@@ -459,7 +464,7 @@ class UploadMethods:
                     force_document=force_document, background=background,
                     send_as=send_as, message_effect_id=message_effect_id,
                     spoiler=spoilers[:10], noforwards=noforwards,
-                    thumb=thumbs[:10]
+                    thumb=thumbs[:10], business_connection_id=business_connection_id
                 )
                 file = file[10:]
                 captions = captions[10:]
@@ -503,7 +508,7 @@ class UploadMethods:
             effect=message_effect_id,
             noforwards=noforwards
         )
-        return self._get_response_message(request, await self(request), entity)
+        return self._get_response_message(request, await self(request, business_connection_id=business_connection_id), entity)
 
     async def _send_album(self: 'TelegramClient', entity, files, caption='',
                           formatting_entities=None,
@@ -514,7 +519,7 @@ class UploadMethods:
                           send_as: typing.Optional['hints.EntityLike'] = None,
                           message_effect_id: typing.Optional[int] = None,
                           spoiler=None, noforwards=None, top_msg_id=None,
-                          thumb=None):
+                          thumb=None, business_connection_id=None):
         """Specialized version of .send_file for albums"""
         # We don't care if the user wants to avoid cache, we will use it
         # anyway. Why? The cached version will be exactly the same thing
@@ -579,7 +584,7 @@ class UploadMethods:
                 spoiler=spoilers[sent_count], thumb=thumbs[sent_count])
             if isinstance(fm, (types.InputMediaUploadedPhoto, types.InputMediaPhotoExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
-                    entity, media=fm
+                    entity, media=fm, business_connection_id=business_connection_id
                 ))
 
                 fm = utils.get_input_media(
@@ -588,7 +593,7 @@ class UploadMethods:
                 )
             elif isinstance(fm, (types.InputMediaUploadedDocument, types.InputMediaDocumentExternal)):
                 r = await self(functions.messages.UploadMediaRequest(
-                    entity, media=fm
+                    entity, media=fm, business_connection_id=business_connection_id
                 ))
 
                 fm = utils.get_input_media(
@@ -619,7 +624,7 @@ class UploadMethods:
             send_as=await self.get_input_entity(send_as) if send_as else None,
             effect=message_effect_id,
         )
-        result = await self(request)
+        result = await self(request, business_connection_id=business_connection_id)
 
         random_ids = [m.random_id for m in media]
         return self._get_response_message(random_ids, result, entity)
